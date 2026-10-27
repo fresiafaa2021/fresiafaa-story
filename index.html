@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Interactive AU - Phone Simulator</title>
+  <style>
+    /* RESET & BASE STYLES */
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      user-select: none;
+    }
+
+    body {
+      background-color: #1a1a1a;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+    }
+
+    /* PHONE CONTAINER */
+    .phone-screen {
+      width: 100%;
+      max-width: 390px;
+      height: 844px;
+      background-color: #ffe4e8;
+      background-image: radial-gradient(#ffb6c1 1px, transparent 1px);
+      background-size: 20px 20px;
+      position: relative;
+      overflow: hidden;
+      border-radius: 40px;
+      box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+      border: 8px solid #333;
+    }
+
+    /* STATUS BAR */
+    .status-bar {
+      height: 44px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0 24px;
+      color: #333;
+      font-weight: 600;
+      font-size: 14px;
+      position: absolute;
+      top: 0;
+      width: 100%;
+      z-index: 100;
+    }
+
+    /* SCREEN VIEWS */
+    .screen {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      display: none;
+      flex-direction: column;
+    }
+
+    .screen.active {
+      display: flex;
+    }
+
+    /* 1. LOCKSCREEN */
+    #lockscreen {
+      background: linear-gradient(180deg, rgba(255,192,203,0.8) 0%, rgba(255,182,193,0.9) 100%);
+      justify-content: space-between;
+      align-items: center;
+      padding: 60px 20px 40px;
+      text-align: center;
+      cursor: pointer;
+    }
+
+    .clock-widget {
+      color: #fff;
+      text-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    .clock-widget .date { font-size: 18px; font-weight: 500; }
+    .clock-widget .time { font-size: 72px; font-weight: 700; line-height: 1; margin-top: 5px; }
+
+    .notification {
+      background: rgba(255, 255, 255, 0.7);
+      backdrop-filter: blur(10px);
+      border-radius: 20px;
+      padding: 15px;
+      width: 90%;
+      text-align: left;
+      margin-top: 30px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+    }
+    .notification h4 { font-size: 14px; color: #d63384; margin-bottom: 4px; }
+    .notification p { font-size: 13px; color: #555; }
+
+    .swipe-text {
+      color: #fff;
+      font-size: 14px;
+      animation: bounce 2s infinite;
+    }
+
+    @keyframes bounce {
+      0%, 20%, 50%, 80%, 100% {transform: translateY(0);}
+      40% {transform: translateY(-10px);}
+      60% {transform: translateY(-5px);}
+    }
+
+    /* 2. PASSCODE SCREEN */
+    #passcode-screen {
+      background: rgba(0,0,0,0.6);
+      backdrop-filter: blur(20px);
+      color: white;
+      justify-content: center;
+      align-items: center;
+      padding: 40px 20px;
+    }
+
+    .passcode-dots {
+      display: flex;
+      gap: 15px;
+      margin: 30px 0 40px;
+    }
+    .dot {
+      width: 12px;
+      height: 12px;
+      border: 2px solid white;
+      border-radius: 50%;
+    }
+    .dot.filled { background: white; }
+
+    .keypad {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+      width: 80%;
+    }
+    .key {
+      width: 70px;
+      height: 70px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.2);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 24px;
+      font-weight: 500;
+      cursor: pointer;
+      margin: 0 auto;
+      transition: background 0.2s;
+    }
+    .key:active { background: rgba(255, 255, 255, 0.4); }
+
+    /* 3. HOMESCREEN */
+    #homescreen {
+      padding-top: 60px;
+      padding-horizontal: 20px;
+    }
+
+    .app-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 20px;
+      padding: 20px;
+    }
+
+    .app-icon {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+    }
+    .icon-box {
+      width: 60px;
+      height: 60px;
+      border-radius: 15px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 28px;
+      color: white;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    }
+    .app-icon span { font-size: 11px; color: #333; font-weight: 500; }
+
+    /* 4. CHAT SCREEN */
+    #chat-screen {
+      background: #ffffff;
+    }
+    .chat-header {
+      height: 70px;
+      background: #f8f8f8;
+      display: flex;
+      align-items: center;
+      padding: 30px 15px 10px;
+      border-bottom: 1px solid #eee;
+      gap: 15px;
+    }
+    .back-btn { font-size: 20px; cursor: pointer; }
+    .chat-title { font-weight: 600; font-size: 16px; }
+
+    .chat-body {
+      flex: 1;
+      padding: 15px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      background: #f0f2f5;
+    }
+
+    .message {
+      max-width: 70%;
+      padding: 10px 14px;
+      border-radius: 18px;
+      font-size: 14px;
+      line-height: 1.4;
+      word-wrap: break-word;
+    }
+    .message.received {
+      background: #ffffff;
+      align-self: flex-start;
+      border-bottom-left-radius: 4px;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+    }
+    .message.sent {
+      background: #ffe812; /* KakaoTalk Yellow style */
+      color: #000;
+      align-self: flex-end;
+      border-bottom-right-radius: 4px;
+    }
+
+    .chat-input-area {
+      padding: 10px;
+      background: #fff;
+      display: flex;
+      gap: 10px;
+      border-top: 1px solid #eee;
+    }
+    .chat-input-area input {
+      flex: 1;
+      padding: 10px 15px;
+      border: 1px solid #ddd;
+      border-radius: 20px;
+      outline: none;
+    }
+    .chat-input-area button {
+      background: #ffe812;
+      border: none;
+      padding: 8px 15px;
+      border-radius: 15px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="phone-screen">
+    <!-- Status Bar -->
+    <div class="status-bar">
+      <span>5:35</span>
+      <span>📶 📶 🔋 42%</span>
+    </div>
+
+    <!-- 1. LOCKSCREEN -->
+    <div id="lockscreen" class="screen active" onclick="goToPasscode()">
+      <div class="clock-widget">
+        <div class="date">Sabtu, 17 Oktober</div>
+        <div class="time">5:35</div>
+      </div>
+
+      <div class="notification">
+        <h4>🎤 Panggung Festival Juhoon</h4>
+        <p>21 November · 35 hari lagi</p>
+      </div>
+
+      <div class="swipe-text">Ketuk untuk membuka</div>
+    </div>
+
+    <!-- 2. PASSCODE SCREEN -->
+    <div id="passcode-screen" class="screen">
+      <h3 style="margin-top: 60px;">Masukkan Kode Sandi</h3>
+      <div class="passcode-dots">
+        <div class="dot" id="dot-1"></div>
+        <div class="dot" id="dot-2"></div>
+        <div class="dot" id="dot-3"></div>
+        <div class="dot" id="dot-4"></div>
+      </div>
+
+      <div class="keypad">
+        <div class="key" onclick="pressKey(1)">1</div>
+        <div class="key" onclick="pressKey(2)">2</div>
+        <div class="key" onclick="pressKey(3)">3</div>
+        <div class="key" onclick="pressKey(4)">4</div>
+        <div class="key" onclick="pressKey(5)">5</div>
+        <div class="key" onclick="pressKey(6)">6</div>
+        <div class="key" onclick="pressKey(7)">7</div>
+        <div class="key" onclick="pressKey(8)">8</div>
+        <div class="key" onclick="pressKey(9)">9</div>
+        <div></div>
+        <div class="key" onclick="pressKey(0)">0</div>
+        <div></div>
+      </div>
+    </div>
+
+    <!-- 3. HOMESCREEN -->
+    <div id="homescreen" class="screen">
+      <div class="app-grid">
+        <div class="app-icon" onclick="openApp('chat-screen')">
+          <div class="icon-box" style="background: #ffe812; color: #3c1e1e;">💬</div>
+          <span>Pesan</span>
+        </div>
+        <div class="app-icon">
+          <div class="icon-box" style="background: #ff4757;">📷</div>
+          <span>Foto</span>
+        </div>
+        <div class="app-icon">
+          <div class="icon-box" style="background: #3742fa;">📸</div>
+          <span>Instagram</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 4. CHAT SCREEN -->
+    <div id="chat-screen" class="screen">
+      <div class="chat-header">
+        <span class="back-btn" onclick="openApp('homescreen')">❮</span>
+        <span class="chat-title">Juhoon</span>
+      </div>
+
+      <div class="chat-body" id="chat-messages">
+        <div class="message received">Minji, aku udah nyobain warung tteokbokki yang kamu rekomendasikan</div>
+        <div class="message received">Tteokbokki rosé-nya beneran enak banget wkwk</div>
+        <div class="message sent">Oh Kak seriousan?? Enak nggak?</div>
+        <div class="message received">Iya serius enak banget wkwk. Kayaknya selera kita beneran cocok deh</div>
+      </div>
+
+      <div class="chat-input-area">
+        <input type="text" id="chat-input" placeholder="Tulis pesan..." />
+        <button onclick="sendMessage()">Kirim</button>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    let inputPasscode = "";
+    const correctPasscode = "1234"; // Atur PIN di sini
+
+    function goToPasscode() {
+      showScreen('passcode-screen');
+    }
+
+    function showScreen(screenId) {
+      document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+      document.getElementById(screenId).classList.add('active');
+    }
+
+    function pressKey(num) {
+      if (inputPasscode.length < 4) {
+        inputPasscode += num;
+        updateDots();
+      }
+
+      if (inputPasscode.length === 4) {
+        setTimeout(() => {
+          if (inputPasscode === correctPasscode) {
+            showScreen('homescreen');
+          } else {
+            alert('PIN salah! Coba lagi (PIN: 1234)');
+          }
+          inputPasscode = "";
+          updateDots();
+        }, 200);
+      }
+    }
+
+    function updateDots() {
+      for (let i = 1; i <= 4; i++) {
+        const dot = document.getElementById(`dot-${i}`);
+        if (i <= inputPasscode.length) {
+          dot.classList.add('filled');
+        } else {
+          dot.classList.remove('filled');
+        }
+      }
+    }
+
+    function openApp(appScreenId) {
+      showScreen(appScreenId);
+    }
+
+    function sendMessage() {
+      const input = document.getElementById('chat-input');
+      const text = input.value.trim();
+      if (!text) return;
+
+      const chatBody = document.getElementById('chat-messages');
+
+      // Balasan Pengirim (User)
+      const userMsg = document.createElement('div');
+      userMsg.className = 'message sent';
+      userMsg.innerText = text;
+      chatBody.appendChild(userMsg);
+
+      input.value = "";
+      chatBody.scrollTop = chatBody.scrollHeight;
+
+      // Simulasi Balasan Otomatis dari Karakter AU (Juhoon)
+      setTimeout(() => {
+        const botMsg = document.createElement('div');
+        botMsg.className = 'message received';
+        botMsg.innerText = "Kapan-kapan aku yang traktir ya! Makan tteokbokki terus ke kafe pojok juga 😁";
+        chatBody.appendChild(botMsg);
+        chatBody.scrollTop = chatBody.scrollHeight;
+      }, 1500);
+    }
+  </script>
+</body>
+          </html>
